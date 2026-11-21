@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TV Remote">
+<meta name="theme-color" content="#11131c">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.png">
+<title>TV Remote</title>
+<style>
+  :root {
+    --bg: #0d0f17; --panel: #171a26; --btn: #232738; --btn-press: #343a52;
+    --text: #e8eaf2; --muted: #8a8fa6; --accent: #5b6cff; --red: #ff4d5e; --green: #2ed47a;
+    --r: 22px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-user-select: none; user-select: none; overscroll-behavior: none; }
+  main { max-width: 420px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 16px) 16px
+    calc(env(safe-area-inset-bottom) + 16px); }
+  .hidden { display: none !important; }
+  h1 { font-size: 22px; margin: 4px 0 2px; }
+  p { color: var(--muted); margin: 6px 0 14px; }
+  button { font: inherit; color: var(--text); background: var(--btn); border: 0; border-radius: var(--r);
+    cursor: pointer; display: grid; place-items: center; transition: background .08s, transform .08s; }
+  button:active, button.pressed { background: var(--btn-press); transform: scale(.96); }
+  button:disabled { opacity: .5; }
+  svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round; }
+
+  /* setup */
+  .card { background: var(--panel); border-radius: var(--r); padding: 18px; margin-bottom: 14px; }
+  .card h2 { font-size: 17px; margin: 0 0 6px; }
+  .primary { background: var(--accent); width: 100%; padding: 14px; font-weight: 600; }
+  .primary:active { background: #4a59e0; }
+  .ghost { background: transparent; color: var(--muted); padding: 10px; width: 100%; }
+  input { font: inherit; width: 100%; padding: 13px 14px; border-radius: 14px; border: 1px solid #2c3146;
+    background: #0f111a; color: var(--text); margin-bottom: 10px; -webkit-user-select: text; user-select: text; }
+  input.pin { font-size: 28px; letter-spacing: 12px; text-align: center; }
+  .tv { width: 100%; justify-items: start; text-align: left; padding: 14px 16px; margin-bottom: 8px;
+    border-radius: 16px; }
+  .tv small { color: var(--muted); display: block; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .tabs button { flex: 1; padding: 10px; border-radius: 14px; font-size: 14px; }
+  .tabs button.on { background: var(--accent); }
+  details { color: var(--muted); font-size: 14px; margin-top: 8px; }
+  details li { margin: 4px 0; }
+
+  /* remote */
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+  header .name { font-weight: 600; font-size: 18px; }
+  header .status { font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.active { background: var(--green); } .dot.standby { background: var(--red); }
+  .icon-btn { width: 44px; height: 44px; border-radius: 50%; background: var(--panel); }
+  .row { display: grid; gap: 14px; margin-bottom: 14px; }
+  .power { background: var(--panel); color: var(--red); height: 86px; border-radius: 28px;
+    grid-auto-flow: column; justify-content: center; gap: 12px; font-weight: 600; font-size: 18px; }
+  .power svg { width: 34px; height: 34px; }
+  .top { grid-template-columns: 1fr 1.4fr 1fr; }
+  .rocker { display: grid; grid-template-rows: 1fr auto 1fr; background: var(--panel); border-radius: var(--r);
+    overflow: hidden; height: 170px; }
+  .rocker button { background: transparent; border-radius: 0; }
+  .rocker button:active { background: var(--btn-press); }
+  .rocker span { text-align: center; color: var(--muted); font-size: 14px; }
+  .mid { display: grid; grid-template-rows: 1fr 1fr; gap: 14px; }
+  .mid button { background: var(--panel); font-size: 14px; gap: 2px; }
+  .dpad { position: relative; aspect-ratio: 1; background: var(--panel); border-radius: 50%;
+    width: 78%; margin: 6px auto 14px; }
+  .dpad button { position: absolute; background: transparent; border-radius: 50%; width: 33%; height: 33%; }
+  .dpad button:active { background: var(--btn-press); }
+  .dpad .up { top: 2%; left: 33.5%; } .dpad .down { bottom: 2%; left: 33.5%; }
+  .dpad .left { left: 2%; top: 33.5%; } .dpad .right { right: 2%; top: 33.5%; }
+  .dpad .ok { top: 30%; left: 30%; width: 40%; height: 40%; background: var(--btn); font-weight: 600; }
+  .nav { grid-template-columns: repeat(4, 1fr); }
+  .nav button, .media button { height: 58px; background: var(--panel); }
+  .media { grid-template-columns: repeat(5, 1fr); }
+  .media button { height: 52px; border-radius: 16px; }
+  .media svg { width: 22px; height: 22px; }
+  .numpad { grid-template-columns: repeat(3, 1fr); }
+  .numpad button { height: 54px; background: var(--panel); font-size: 20px; }
+  .kbd { display: flex; gap: 8px; margin-bottom: 14px; }
+  .kbd input { margin: 0; } .kbd button { padding: 0 18px; background: var(--accent); border-radius: 14px; }
+  .toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 20px); transform: translateX(-50%);
+    background: #2a2f44; color: var(--text); padding: 12px 18px; border-radius: 14px; max-width: 90vw;
+    font-size: 14px; box-shadow: 0 8px 30px #0008; transition: opacity .2s; z-index: 9; }
+  .toast.err { background: #5a1f28; }
+  .spin { width: 18px; height: 18px; border: 2px solid #fff4; border-top-color: #fff; border-radius: 50%;
+    animation: s .7s linear infinite; display: inline-block; vertical-align: middle; }
+  @keyframes s { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<main>
+
+<!-- ============ SETUP ============ -->
+<section id="setup" class="hidden">
+  <h1>Connect your TV</h1>
+  <p>Your phone and the computer running this must be on the same Wi-Fi as the TV.</p>
+
+  <div class="card" id="step-find">
+    <h2>1. Find the TV</h2>
+    <div id="tv-list"></div>
+    <button class="primary" id="btn-scan">Search network</button>
+    <details>
+      <summary>Enter IP address manually</summary>
+      <div style="height:10px"></div>
+      <input id="manual-ip" inputmode="decimal" placeholder="e.g. 192.168.1.23">
+      <button class="primary" id="btn-manual">Use this IP</button>
+    </details>
+  </div>
+
+  <div class="card hidden" id="step-auth">
+    <h2>2. Authorize</h2>
+    <p id="auth-tv"></p>
+    <div class="tabs">
+      <button id="tab-pin" class="on">PIN code</button>
+      <button id="tab-psk">Pre-Shared Key</button>
+    </div>
+    <div id="auth-pin">
+      <p>Tap below — a 4-digit code will appear on the TV screen.</p>
+      <button class="primary" id="btn-pair">Show code on TV</button>
+      <div id="pin-entry" class="hidden" style="margin-top:12px">
+        <input id="pin" class="pin" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="one-time-code">
+        <button class="primary" id="btn-pin">Connect</button>
+      </div>
+    </div>
+    <div id="auth-psk" class="hidden">
+      <p>On the TV: Settings → Network &amp; Internet → Home network → IP control →
+        Authentication: “Normal and Pre-Shared Key”, then set a Pre-Shared Key.</p>
+      <input id="psk" placeholder="Pre-Shared Key (e.g. 0000)">
+      <button class="primary" id="btn-psk">Connect</button>
+    </div>
+    <details>
+      <summary>Pairing doesn’t work?</summary>
+      <ul>
+        <li>On the TV, turn on Settings → Network &amp; Internet → Home network →
+          Remote device settings → <b>Control remotely</b>.</li>
+        <li>For turning the TV <b>on</b> from your phone, also enable <b>Remote start</b>.</li>
+        <li>No remote to change settings? The free Google TV app’s phone remote can do it.</li>
+      </ul>
+    </details>
+    <button class="ghost" id="btn-back">← Choose a different TV</button>
+  </div>
+</section>
+
+<!-- ============ REMOTE ============ -->
+<section id="remote" class="hidden">
+  <header>
+    <div>
+      <div class="name" id="tv-name">TV</div>
+      <div class="status"><span class="dot" id="dot"></span><span id="status-text">…</span></div>
+    </div>
+    <button class="icon-btn" id="btn-settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </header>
+
+  <div class="row"><button class="power" id="btn-power">
+    <svg viewBox="0 0 24 24"><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/><path d="M12 2v10"/></svg>
+    <span id="power-label">Power</span>
+  </button></div>
+
+  <div class="row top">
+    <div class="rocker">
+      <button data-key="VolumeUp" data-repeat aria-label="Volume up"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+      <span>Vol</span>
+      <button data-key="VolumeDown" data-repeat aria-label="Volume down"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+    </div>
+    <div class="mid">
+      <button data-key="Mute"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m22 9-6 6M16 9l6 6"/></svg>Mute</button>
+      <button data-key="Input"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Input</button>
+    </div>
+    <div class="rocker">
+      <button data-key="ChannelUp" data-repeat aria-label="Channel up"><svg viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></svg></button>
+      <span>Ch</span>
+      <button data-key="ChannelDown" data-repeat aria-label="Channel down"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+    </div>
+  </div>
+
+  <div class="dpad">
+    <button class="up" data-key="Up" data-repeat aria-label="Up"><svg viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></svg></button>
+    <button class="left" data-key="Left" data-repeat aria-label="Left"><svg viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg></button>
+    <button class="ok" data-key="Confirm">OK</button>
+    <button class="right" data-key="Right" data-repeat aria-label="Right"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>
+    <button class="down" data-key="Down" data-repeat aria-label="Down"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+  </div>
+
+  <div class="row nav">
+    <button data-key="Return" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
+    <button data-key="Home" aria-label="Home"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button>
+    <button id="btn-num" aria-label="Number pad" style="font-weight:600">123</button>
+    <button id="btn-kbd" aria-label="Keyboard"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg></button>
+  </div>
+
+  <div class="kbd hidden" id="kbd">
+    <input id="kbd-text" placeholder="Type, then Send (search box must be open on TV)">
+    <button id="btn-send">Send</button>
+  </div>
+
+  <div class="row numpad hidden" id="numpad"></div>
+
+  <div class="row media">
+    <button data-key="Rewind" aria-label="Rewind"><svg viewBox="0 0 24 24"><path d="m11 19-9-7 9-7zM22 19l-9-7 9-7z"/></svg></button>
+    <button data-key="Stop" aria-label="Stop"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></svg></button>
+    <button data-key="Pause" aria-label="Pause"><svg viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></svg></button>
+    <button data-key="Play" aria-label="Play"><svg viewBox="0 0 24 24"><path d="m7 4 13 8-13 8z"/></svg></button>
+    <button data-key="Forward" aria-label="Fast forward"><svg viewBox="0 0 24 24"><path d="m13 19 9-7-9-7zM2 19l9-7-9-7z"/></svg></button>
+  </div>
+
+  <button class="ghost" id="btn-forget">Disconnect this TV</button>
+</section>
+
+</main>
+<div class="toast hidden" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let state = {}, powerState = "unknown", toastTimer;
+
+function toast(msg, err = false) {
+  const t = $("toast");
+  t.textContent = msg; t.className = "toast" + (err ? " err" : "");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add("hidden"), err ? 5000 : 1800);
+}
+
+async function api(path, body) {
+  const res = await fetch(path, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}),
+  });
+  const data = await res.json().catch(() => ({ error: "Bad response from server" }));
+  if (!res.ok) { const e = new Error(data.error || res.statusText); e.auth = data.auth; throw e; }
+  return data;
+}
+
+async function busy(btn, fn) {
+  const label = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
+  try { return await fn(); } catch (e) { toast(e.message, true); if (e.auth) showAuth(); }
+  finally { btn.disabled = false; btn.innerHTML = label; }
+}
+
+function haptic() { if (navigator.vibrate) navigator.vibrate(10); }
+
+/* ---------- views ---------- */
+function show(view) {
+  $("setup").classList.toggle("hidden", view !== "setup");
+  $("remote").classList.toggle("hidden", view !== "remote");
+}
+function showFind() { show("setup"); $("step-find").classList.remove("hidden"); $("step-auth").classList.add("hidden"); }
+function showAuth() {
+  show("setup"); $("step-find").classList.add("hidden"); $("step-auth").classList.remove("hidden");
+  $("auth-tv").textContent = `${state.name || "Sony TV"} ${state.model || ""} — ${state.host}`;
+  $("pin-entry").classList.add("hidden");
+}
+function showRemote() {
+  show("remote");
+  $("tv-name").textContent = [state.name, state.model].filter(Boolean).join(" ") || "Sony TV";
+  refreshStatus();
+}
+
+function setPower(p) {
+  powerState = p;
+  $("dot").className = "dot " + p;
+  $("status-text").textContent = p === "active" ? "On" : p === "standby" ? "Standby" : "Unreachable";
+  $("power-label").textContent = p === "active" ? "Turn off" : p === "standby" ? "Turn on" : "Power";
+}
+async function refreshStatus() {
+  try { setPower((await api("/api/status")).power); }
+  catch (e) { setPower("unknown"); if (e.auth) showAuth(); }
+}
+
+/* ---------- setup ---------- */
+function renderTVs(tvs) {
+  const list = $("tv-list"); list.innerHTML = "";
+  if (!tvs.length) { list.innerHTML = '<p>No Sony TV found. Try entering its IP (TV: Settings → Network → Network status).</p>'; return; }
+  for (const tv of tvs) {
+    const b = document.createElement("button"); b.className = "tv";
+    b.innerHTML = `<span>${tv.name || "Sony TV"} ${tv.model || ""}</span><small>${tv.host}</small>`;
+    b.onclick = () => selectTV(tv.host, b);
+    list.appendChild(b);
+  }
+}
+async function selectTV(host, btn) {
+  await busy(btn, async () => { state = await api("/api/select", { host }); showAuth(); });
+}
+$("btn-scan").onclick = (e) => busy(e.currentTarget, async () => renderTVs((await api("/api/discover")).tvs));
+$("btn-manual").onclick = (e) => selectTV($("manual-ip").value, e.currentTarget);
+$("btn-back").onclick = showFind;
+
+$("tab-pin").onclick = () => { $("tab-pin").classList.add("on"); $("tab-psk").classList.remove("on");
+  $("auth-pin").classList.remove("hidden"); $("auth-psk").classList.add("hidden"); };
+$("tab-psk").onclick = () => { $("tab-psk").classList.add("on"); $("tab-pin").classList.remove("on");
+  $("auth-psk").classList.remove("hidden"); $("auth-pin").classList.add("hidden"); };
+
+$("btn-pair").onclick = (e) => busy(e.currentTarget, async () => {
+  const r = await api("/api/pair/start");
+  if (r.pinShown) { $("pin-entry").classList.remove("hidden"); $("pin").focus(); }
+  else { state = r.state; toast("Connected"); showRemote(); }
+});
+$("btn-pin").onclick = (e) => busy(e.currentTarget, async () => {
+  state = await api("/api/pair/finish", { pin: $("pin").value }); toast("Connected"); showRemote();
+});
+$("pin").addEventListener("input", () => { if ($("pin").value.length === 4) $("btn-pin").click(); });
+$("btn-psk").onclick = (e) => busy(e.currentTarget, async () => {
+  state = await api("/api/psk", { psk: $("psk").value }); toast("Connected"); showRemote();
+});
+
+/* ---------- remote ---------- */
+$("btn-power").onclick = (e) => {
+  haptic();
+  const action = powerState === "active" ? "off" : powerState === "standby" ? "on" : "toggle";
+  const btn = e.currentTarget, label = $("power-label");
+  btn.disabled = true; label.textContent = action === "off" ? "Turning off…" : "Turning on…";
+  api("/api/power", { action })
+    .then((r) => { setPower(r.power); toast(r.power === "standby" ? "TV turned off" : "TV is on"); })
+    .catch((err) => { setPower(powerState); toast(err.message, true); if (err.auth) showAuth(); })
+    .finally(() => { btn.disabled = false; });
+};
+
+function sendKey(name) {
+  haptic();
+  return api("/api/key", { name }).catch((e) => { toast(e.message, true); if (e.auth) showAuth(); });
+}
+
+document.querySelectorAll("[data-key]").forEach((btn) => {
+  const key = btn.dataset.key;
+  if (!("repeat" in btn.dataset)) { btn.onclick = () => sendKey(key); return; }
+  // hold-to-repeat for volume / channel / arrows
+  let timer, interval;
+  const stop = () => { clearTimeout(timer); clearInterval(interval); btn.classList.remove("pressed"); };
+  btn.addEventListener("pointerdown", (ev) => {
+    ev.preventDefault(); btn.classList.add("pressed"); sendKey(key);
+    timer = setTimeout(() => { interval = setInterval(() => sendKey(key), 180); }, 450);
+  });
+  ["pointerup", "pointerleave", "pointercancel"].forEach((t) => btn.addEventListener(t, stop));
+});
+
+const numpad = $("numpad");
+["1","2","3","4","5","6","7","8","9","","0",""].forEach((n) => {
+  const b = document.createElement("button");
+  if (n) { b.textContent = n; b.onclick = () => sendKey("Num" + n); } else b.style.visibility = "hidden";
+  numpad.appendChild(b);
+});
+$("btn-num").onclick = () => numpad.classList.toggle("hidden");
+$("btn-kbd").onclick = () => { $("kbd").classList.toggle("hidden"); if (!$("kbd").classList.contains("hidden")) $("kbd-text").focus(); };
+$("btn-send").onclick = (e) => busy(e.currentTarget, async () => {
+  await api("/api/text", { text: $("kbd-text").value }); $("kbd-text").value = ""; toast("Sent");
+});
+$("kbd-text").addEventListener("keydown", (e) => { if (e.key === "Enter") $("btn-send").click(); });
+
+$("btn-settings").onclick = showAuth;
+$("btn-forget").onclick = async () => {
+  if (!confirm("Forget this TV? You'll need to pair again.")) return;
+  state = await api("/api/forget"); showFind();
+};
+document.addEventListener("visibilitychange", () => { if (!document.hidden && !$("remote").classList.contains("hidden")) refreshStatus(); });
+
+/* ---------- boot ---------- */
+(async () => {
+  try { state = await api("/api/state"); } catch { state = {}; }
+  if (!state.host) showFind(); else if (!state.auth) showAuth(); else showRemote();
+})();
+</script>
+</body>
+</html>
